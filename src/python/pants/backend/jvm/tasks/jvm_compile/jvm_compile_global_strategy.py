@@ -424,7 +424,7 @@ class JvmCompileGlobalStrategy(JvmCompileStrategy):
           self.move(tmp_analysis, self._analysis_file)
 
   def invalid_vts_predicate(self, cached_vt):
-    # TODO
+    # TODO: implement for global compilation strategy
     return True
 
   def _write_to_artifact_cache(self, analysis_file, vts, get_update_artifact_cache_work):

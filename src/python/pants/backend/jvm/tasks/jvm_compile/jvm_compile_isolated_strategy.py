@@ -257,8 +257,14 @@ class JvmCompileIsolatedStrategy(JvmCompileStrategy):
     # discard.
     for target in cached_vt.targets:
       cc = self.compile_context(target)
-      analysis = self._analysis_parser.parse_from_path(cc.analysis_file)._underlying_analysis
+      analysis_class = self._analysis_parser.parse_from_path(cc.analysis_file)
+      if not hasattr(analysis_class, '_underlying_analysis'):
+        # zinc isn't in use. TODO: clean this up.
+        continue
+      analysis = analysis_class._underlying_analysis
       for classfile, stamps in analysis.stamps.binaries.items():
+        # `stamps` is a list of strings like 'lastModified(1432758309000)'... the contract
+        # of the zinc analysis parser is that we get exactly one.
         if len(stamps) != 1:
           self.context.log.warn('Invalid stamps in artifact for {}: {}'.format(cached_vt, stamps))
           return True
