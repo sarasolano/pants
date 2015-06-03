@@ -269,7 +269,7 @@ class JvmCompileIsolatedStrategy(JvmCompileStrategy):
         # Comparable timestamps from the analysis and classfiles.
         analysis_timestamp = int(match.group(0))
         classfile_mtime_millis = 1000 * int(os.stat(classfile).st_mtime)
-        if True or analysis_timestamp != classfile_mtime_millis:
+        if analysis_timestamp != classfile_mtime_millis:
           self.context.log.warn('Stamp mismatch in artifact for {}: rebuilding.'.format(cached_vt))
           return True
     return False
