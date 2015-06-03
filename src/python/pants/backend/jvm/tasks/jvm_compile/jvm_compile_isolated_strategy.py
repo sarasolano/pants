@@ -253,8 +253,16 @@ class JvmCompileIsolatedStrategy(JvmCompileStrategy):
         self._analysis_tools.localize(portable_analysis_file, compile_context.analysis_file)
 
   def invalid_vts_predicate(self, cached_vt):
-    # Confirm that the 'binary dep' stamps for this artifact match upstream products; otherwise,
-    # discard.
+    """Confirms that the 'binary dep' stamps for this artifact match upstream products.
+
+    TODO: When we retrieve an artifact from the cache, it is based on our own fingerprint as well
+    as upstream fingerprints. Assuming deterministic outputs, any artifact with the same input
+    fingerprint is identical. But zinc does not create deterministic output timestamps for inputs,
+    so this is a fixup task to ignore artifacts that would cause timestamp mismatches for otherwise
+    identical classfiles.
+
+    Returns True to discard, or False to indicate that the artifact is valid.
+    """
     for target in cached_vt.targets:
       cc = self.compile_context(target)
       analysis_class = self._analysis_parser.parse_from_path(cc.analysis_file)
@@ -262,7 +270,10 @@ class JvmCompileIsolatedStrategy(JvmCompileStrategy):
         # zinc isn't in use. TODO: clean this up.
         continue
       analysis = analysis_class._underlying_analysis
-      for classfile, stamps in analysis.stamps.binaries.items():
+      for binary_dep, stamps in analysis.stamps.binaries.items():
+        if not binary_dep.endswith(".class"):
+          continue
+        classfile = binary_dep
         # `stamps` is a list of strings like 'lastModified(1432758309000)'... the contract
         # of the zinc analysis parser is that we get exactly one.
         if len(stamps) != 1:
@@ -276,7 +287,8 @@ class JvmCompileIsolatedStrategy(JvmCompileStrategy):
         analysis_timestamp = int(match.group(0))
         classfile_mtime_millis = 1000 * int(os.stat(classfile).st_mtime)
         if analysis_timestamp != classfile_mtime_millis:
-          self.context.log.warn('Stamp mismatch in artifact for {}: rebuilding.'.format(cached_vt))
+          self.context.log.warn(
+              'Stamp mismatch in artifact for {} for {}; rebuilding.'.format(cached_vt, binary_dep))
           return True
     return False
 
